@@ -6,6 +6,7 @@ export default function Home() {
   const [users, setUsers] = useState([]);
   const [grid, setGrid] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(false); // <-- loading state
 
   // Add User modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -87,7 +88,14 @@ export default function Home() {
             </button>
           </div>
         </div>
-
+          
+          {/* Loading state */}
+        {loading && (
+          <div className="text-center py-20">
+            <div className="inline-block w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-gray-500 mt-2">Loading users...</p>
+          </div>
+        )}
         {/* Users Section */}
         {users.length === 0 ? (
           <p className="text-center text-gray-500 py-20">No users yet</p>
