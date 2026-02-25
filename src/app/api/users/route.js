@@ -1,7 +1,7 @@
-// app/api/users/route.js
+
 import pool from "@/lib/db";
 
-// GET all users
+
 export async function GET() {
   try {
     const [rows] = await pool.query(

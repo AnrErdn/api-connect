@@ -1,9 +1,13 @@
 "use client";
-
 import { useEffect, useState } from "react";
+import Header from "@/components/Header";
 
-export default function UsersPage() {
+export default function Home() {
   const [users, setUsers] = useState([]);
+  const [grid, setGrid] = useState(true);
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  // Form state for adding new user
   const [userName, setUserName] = useState("");
   const [userAge, setUserAge] = useState("");
   const [userPassword, setUserPassword] = useState("");
@@ -11,78 +15,132 @@ export default function UsersPage() {
   const [email, setEmail] = useState("");
   const [grade, setGrade] = useState("");
 
-  const fetchUsers = () => {
-    fetch("/api/users")
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && Array.isArray(data.data)) setUsers(data.data);
-        else setUsers([]);
-      })
-      .catch(() => setUsers([]));
+  // Delete confirmation state
+  const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null, name: "" });
+
+  useEffect(() => {
+    setLoggedIn(localStorage.getItem("auth") === "true");
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    const res = await fetch("/api/users");
+    const data = await res.json();
+    setUsers(data.data || []);
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  const logout = () => {
+    localStorage.removeItem("auth");
+    setLoggedIn(false);
+  };
 
-  const addUser = () => {
+  const deleteUser = async (id) => {
+    if (!loggedIn) return alert("Login required");
+    await fetch(`/api/users?id=${id}`, { method: "DELETE" });
+    setConfirmDelete({ show: false, id: null, name: "" });
+    fetchUsers();
+  };
+
+  const addUser = async () => {
     if (!userName) return alert("Please enter a name");
-    fetch("/api/users", {
+    const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userName, userAge, userPassword, school, email, grade }),
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setUserName(""); setUserAge(""); setUserPassword(""); setSchool(""); setEmail(""); setGrade("");
-          fetchUsers();
-        } else alert(data.message || "Failed to add user");
-      });
-  };
-
-  const deleteUser = (id) => {
-    if (!confirm("Delete this user?")) return;
-    fetch(`/api/users?id=${id}`, { method: "DELETE" })
-      .then(res => res.json())
-      .then(data => { if (data.success) fetchUsers(); else alert(data.message || "Failed to delete user"); });
+    });
+    const data = await res.json();
+    if (!data.success) return alert(data.message || "Failed to add user");
+    setUserName(""); setUserAge(""); setUserPassword(""); setSchool(""); setEmail(""); setGrade("");
+    fetchUsers();
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 space-y-8 font-sans">
-      <h1 className="text-2xl font-bold text-center">User Management</h1>
+    <>
+      <Header loggedIn={loggedIn} logout={logout} />
 
-      {/* Add User Form */}
-      <div className="border p-4 rounded space-y-3 bg-gray-50">
-        <h2 className="font-semibold text-gray-600">Add New User</h2>
-        <input className="w-full p-2 border rounded text-gray-600" placeholder="Name" value={userName} onChange={e => setUserName(e.target.value)} />
-        <input className="w-full p-2 border rounded text-gray-600" placeholder="Age" type="number" value={userAge} onChange={e => setUserAge(e.target.value)} />
-        <input className="w-full p-2 border rounded text-gray-600" placeholder="Password" type="password" value={userPassword} onChange={e => setUserPassword(e.target.value)} />
-        <input className="w-full p-2 border rounded text-gray-600" placeholder="School" value={school} onChange={e => setSchool(e.target.value)} />
-        <input className="w-full p-2 border rounded text-gray-600" placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
-        <input className="w-full p-2 border rounded text-gray-600" placeholder="Grade (e.g., 12th)" value={grade} onChange={e => setGrade(e.target.value)} />
-        <button onClick={addUser} className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">Add User</button>
-      </div>
+      <main className="max-w-6xl mx-auto p-6">
+        {/* Hero Section */}
+        <section className="text-center py-12">
+          <h1 className="text-4xl font-bold">User Management</h1>
+          <p className="text-gray-500 mt-2">{loggedIn ? "You can manage users now" : "Login to manage users"}</p>
+        </section>
 
-      {/* Users List */}
-      <div className="space-y-4">
-        <h2 className="font-semibold text-lg text-gray-600">Existing Users</h2>
-        {users.length === 0 ? <p className="text-gray-600">No users found.</p> :
-          users.map(user => (
-            <div key={user.userID} className="border p-3 rounded bg-gray-50 shadow-sm">
-              <p className="text-gray-600"><strong>Username:</strong> {user.userName}</p>
-              <p className="text-gray-600"><strong>Age:</strong> {user.userAge || "N/A"}</p>
-              <p className="text-gray-600"><strong>School:</strong> {user.school || "N/A"}</p>
-              <p className="text-gray-600"><strong>Email:</strong> {user.email || "N/A"}</p>
-              <p className="text-gray-600"><strong>Grade:</strong> {user.grade || "N/A"}</p>
-              <button
-                onClick={() => deleteUser(user.userID)}
-                className="mt-2 bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-              >
-                Delete
-              </button>
+        {/* Add User Form */}
+        {loggedIn && (
+          <div className="border p-6 rounded-xl mb-6 bg-gray-50 shadow space-y-4">
+            <h2 className="font-semibold text-xl text-black">Add New User</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input className="p-2 border rounded text-black" placeholder="Name" value={userName} onChange={e => setUserName(e.target.value)} />
+              <input className="p-2 border rounded text-black" placeholder="Age" type="number" value={userAge} onChange={e => setUserAge(e.target.value)} />
+              <input className="p-2 border rounded text-black" placeholder="Password" type="password" value={userPassword} onChange={e => setUserPassword(e.target.value)} />
+              <input className="p-2 border rounded text-black" placeholder="School" value={school} onChange={e => setSchool(e.target.value)} />
+              <input className="p-2 border rounded text-black" placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+              <input className="p-2 border rounded text-black" placeholder="Grade" value={grade} onChange={e => setGrade(e.target.value)} />
             </div>
-          ))
-        }
-      </div>
-    </div>
+            <button onClick={addUser} className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">
+              Add User
+            </button>
+          </div>
+        )}
+
+        {/* Users Section */}
+        <div className="flex justify-between mb-6">
+          <h2 className="font-semibold text-xl">Users</h2>
+          <button onClick={() => setGrid(!grid)} className="border px-3 py-1 rounded">
+            {grid ? "List" : "Grid"}
+          </button>
+        </div>
+
+        {users.length === 0 ? (
+          <p className="text-center text-gray-500 py-20">No users yet</p>
+        ) : (
+          <div className={grid ? "grid grid-cols-3 gap-4" : "space-y-4"}>
+            {users.map(u => (
+              <div key={u.userID} className="border rounded-xl p-4 shadow hover:shadow-lg">
+                <p><span className="font-semibold">Name:</span> {u.userName}</p>
+                <p><span className="font-semibold">Age:</span> {u.userAge || "N/A"}</p>
+                <p><span className="font-semibold">School:</span> {u.school || "N/A"}</p>
+                <p><span className="font-semibold">Email:</span> {u.email || "N/A"}</p>
+                <p><span className="font-semibold">Grade:</span> {u.grade || "N/A"}</p>
+
+                {loggedIn && (
+                  <button
+                    onClick={() => setConfirmDelete({ show: true, id: u.userID, name: u.userName })}
+                    className="mt-3 text-red-500 text-sm"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {confirmDelete.show && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-sm w-full space-y-4 shadow-lg">
+              <h3 className=" text-black text-lg font-semibold">Confirm Delete</h3>
+              <p className="text-black">Are you sure you want to delete <span className="font-bold">{confirmDelete.name}</span>?</p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setConfirmDelete({ show: false, id: null, name: "" })}
+                  className="px-4 py-2 border rounded hover:bg-gray-100 text-black"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deleteUser(confirmDelete.id)}
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                >
+                  Yes, Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+    </>
   );
 }
